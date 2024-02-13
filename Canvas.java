@@ -49,8 +49,6 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     boolean keys[] = new boolean[]{false,false,false,false,false,false,false};
     
     private double vertLook = 0, horLook = 0, horRotSpeed = .09, vertRotSpeed = .22;
-    Integer ppoint_x[] = new Integer[1000];
-    Integer ppoint_y[] = new Integer[1000];
     private Robot robot;
 
     Canvas() {
@@ -295,7 +293,11 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         g.setColor(Color.white);
         g.fillRect(0, 0, (int)Frame.screenSize.getWidth(), (int)Frame.screenSize.getHeight());
         int i = 0;
+        drawPolygons.clear();
         for(Point3D[] singlePoly : polygons) {
+            PsuedoIntegerArray ppoint_x = new PsuedoIntegerArray();
+            PsuedoIntegerArray ppoint_y = new PsuedoIntegerArray();
+            i = 0;
             for(Point3D singlePoint : singlePoly) {
                 double[] originalMatrix = singlePoint.getMatris();
                 double[] playerMatrix = camera.getMatris();
@@ -309,16 +311,15 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
                 double z = (fov / (fov * distance - rotated.z / 4));
                 projected_2D.setMatris(Matrix.multiply(projection(z), rotated.getMatris()));
                 if(z >= 0) {
-                    ppoint_x[i] = (int)projected_2D.x;
-                    ppoint_y[i] = (int)projected_2D.y;
-                } else {
-                    ppoint_x[i] = null;
-                    ppoint_y[i] = null;
+                    ppoint_x.add((int)projected_2D.x + (int)Frame.screenSize.getWidth() / 2);
+                    ppoint_y.add((int)projected_2D.y + (int)Frame.screenSize.getHeight() / 2);
                 }
-                i++;
             }
+            //Polygon DP = new Polygon(ppoint_x,ppoint_y,3);
+            g.setColor(Color.BLACK);
+            System.out.println("size=" + ppoint_x.getArray().length);
+            g.drawPolygon(ppoint_x.getArray(),ppoint_y.getArray(),ppoint_x.getArray().length);
         }
-        
     }
 
     @Override
@@ -328,9 +329,6 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         bi.getGraphics().setColor(Color.BLACK);
 
         draw_poly(bi.getGraphics());
-        connect_points(0, 1, ppoint_x, ppoint_y, bi.getGraphics());
-        connect_points(1, 2, ppoint_x, ppoint_y, bi.getGraphics());
-        connect_points(2, 0, ppoint_x, ppoint_y, bi.getGraphics());
         
         g.drawImage(bi, 0, 0, null);
     }
