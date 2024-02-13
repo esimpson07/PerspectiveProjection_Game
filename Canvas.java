@@ -46,6 +46,7 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     double distance = 0;
     double fov = 180;
     double movementSpeed = 10;
+    boolean keys[] = new boolean[]{false,false,false,false,false,false,false};
     
     private double vertLook = 0, horLook = 0, horRotSpeed = .09, vertRotSpeed = .22;
     Double ppoint_x[] = new Double[10];
@@ -74,23 +75,51 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     
     public void keyPressed(KeyEvent e) {
         if(e.getKeyCode() == KeyEvent.VK_W) {
-            camera.setZ(camera.getZ() - movementSpeed);
+            keys[0] = true;
         }
-        if(e.getKeyCode() == KeyEvent.VK_S) {
-            camera.setZ(camera.getZ() + movementSpeed);
-        } 
         if(e.getKeyCode() == KeyEvent.VK_A) {
-            camera.setX(camera.getX() - movementSpeed);
+            keys[1] = true;
+        } 
+        if(e.getKeyCode() == KeyEvent.VK_S) {
+            keys[2] = true;
         }
         if(e.getKeyCode() == KeyEvent.VK_D) {
-            camera.setX(camera.getX() + movementSpeed);
+            keys[3] = true;
+        }
+        if(e.getKeyCode() == KeyEvent.VK_D) {
+            keys[4] = true;
+        }
+        if(e.getKeyCode() == KeyEvent.VK_D) {
+            keys[5] = true;
         }
         if(e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            System.exit(0);
+            keys[6] = true;
         }
     }
     
-    public void keyReleased(KeyEvent e) {}
+    public void keyReleased(KeyEvent e) {
+        if(e.getKeyCode() == KeyEvent.VK_W) {
+            keys[0] = false;
+        }
+        if(e.getKeyCode() == KeyEvent.VK_A) {
+            keys[1] = false;
+        } 
+        if(e.getKeyCode() == KeyEvent.VK_S) {
+            keys[2] = false;
+        }
+        if(e.getKeyCode() == KeyEvent.VK_D) {
+            keys[3] = false;
+        }
+        if(e.getKeyCode() == KeyEvent.VK_D) {
+            keys[4] = false;
+        }
+        if(e.getKeyCode() == KeyEvent.VK_D) {
+            keys[5] = false;
+        }
+        if(e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            keys[6] = false;
+        }
+    }
 
     public void keyTyped(KeyEvent e) {}
 
@@ -132,6 +161,24 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         //facing.setZ();
     }
     
+    private void updateKeys() {
+        if(keys[0]) {
+            camera.setZ(camera.getZ() - (movementSpeed * Math.cos(angleY)));
+            camera.setX(camera.getX() + (movementSpeed * Math.sin(angleY)));
+        }
+        if(keys[1]) {
+            camera.setZ(camera.getZ() - (movementSpeed * Math.sin(angleY)));
+            camera.setX(camera.getX() - (movementSpeed * Math.cos(angleY)));
+        }
+        if(keys[2]) {
+            camera.setZ(camera.getZ() + (movementSpeed * Math.cos(angleY)));
+            camera.setX(camera.getX() - (movementSpeed * Math.sin(angleY)));
+        }
+        if(keys[3]) {
+            camera.setZ(camera.getZ() + (movementSpeed * Math.sin(angleY)));
+            camera.setX(camera.getX() + (movementSpeed * Math.cos(angleY)));
+        }
+    }
     /*
     private void mouseMovement(double newMouseX, double newMouseY) {        
         double  difY = (newMouseX - Frame.screenSize.getWidth() / 2);  
@@ -267,6 +314,7 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        updateKeys();
         bi.getGraphics().setColor(Color.BLACK);
 
         draw_poly(bi.getGraphics());
