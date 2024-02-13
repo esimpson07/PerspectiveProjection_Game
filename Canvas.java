@@ -28,11 +28,10 @@ import javax.swing.JPanel;
 public class Canvas extends JPanel implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener{
 
     //Point3D[] cube = new Point3D[8];
-    ArrayList<Point3D[]> polygons;
+    ArrayList<SpacePolygon> polygons;
     Point mouse_point = new Point(0, 0);
     Point3D origin = new Point3D(Frame.screenSize.getWidth() / 2, Frame.screenSize.getHeight() / 2, 0);
     Point3D projected_2D = new Point3D(0, 0, 0);
-    ArrayList<Point3D[]> projectedPolygons;
     ArrayList<Polygon> drawPolygons;
     Point3D camera = new Point3D(0, 0, 0);
     Point3D rotated = new Point3D(0, 0, 0);
@@ -45,7 +44,8 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     double angleZ = 0;
     double distance = 0;
     double fov = 180;
-    double movementSpeed = 100;
+    double movementSpeed = 50;
+    int drawPolygonOrder[];
     boolean keys[] = new boolean[]{false,false,false,false,false,false,false};
     
     private double vertLook = 0, horLook = 0, horRotSpeed = .09, vertRotSpeed = .22;
@@ -150,13 +150,11 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     private void mouseMovement(double newMouseX, double newMouseY) {        
         double  difY = (newMouseX - Frame.screenSize.getWidth() / 2);  
         double  difX = (newMouseY - Frame.screenSize.getHeight() / 2);
-        angleY += difY  / 3600;
-        angleX -= difX / 3600;
-        double r = 1; // Math.sqrt(1 - (angleY * angleY));
+        angleY += difY  / 1800;
+        angleX -= difX / 1800;
         facing.setX(angleX);
         facing.setY(angleY);
         facing.setZ(0);
-        //facing.setZ();
     }
     
     private void updateKeys() {
@@ -186,67 +184,18 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
             System.exit(0);
         }
     }
-    /*
-    private void mouseMovement(double newMouseX, double newMouseY) {        
-        double  difY = (newMouseX - Frame.screenSize.getWidth() / 2);  
-        double  difX = (newMouseY - Frame.screenSize.getHeight() / 2);
-        angleY += difY  / 3600;
-        angleX -= difX / 3600;
-        double r = 1; // Math.sqrt(1 - (angleY * angleY));
-        facing.setY(Math.cos(angleX));
-        facing.setX(Math.sin(angleX));
-        facing.setZ(angleY);
-        //facing.setZ();
-    }
-    
-    private void mouseMovement() {  
-        mXDist = mXOG - e.getX();
-        mYDist = mYOG - e.getY();
-        angleY += dpi * 180 * (2 * (double)(mXDist) / (double)(width));
-        angleX -= dpi * 180 * (2 * (double)(mYDist) / (double)(width));
-        angleY = angleY % 360;
-        angleX = clamp(angleX,-70,70);
-        mXOG = e.getX();
-        mYOG = e.getY();
-        setPlayerAngle(angleX,angleY,0);
-    }
-    
-    private void mouseMovement(double newMouseX, double newMouseY) {        
-        double difX = (newMouseX - Frame.screenSize.getWidth()/2);
-        double difY = (newMouseY - Frame.screenSize.getHeight()/2);
-        difY *= 6 - Math.abs(vertLook) * 5;
-        vertLook -= difY  / vertRotSpeed;
-        horLook += difX / horRotSpeed;
-
-        if(vertLook > 0.99999) {
-            vertLook = 0.99999;
-        } else if(vertLook < -0.99999) {
-            vertLook = -0.99999;
-        }
-
-        updateView();
-    }
-
-    private void updateView() {
-        //double r = Math.sqrt(1 - (vertLook * vertLook));
-        //facing.setX(facing.getX() + r * Math.cos(horLook));
-        //facing.setY(facing.getY() + r * Math.sin(horLook));        
-        //facing.setZ(facing.getZ() + vertLook);
-        facing.setX(horLook);
-        facing.setY(vertLook);
-    }*/
 
     private void init() {
-        polygons = new ArrayList<Point3D[]>();
-        projectedPolygons = new ArrayList<Point3D[]>();
+        polygons = new ArrayList<SpacePolygon>();
         drawPolygons = new ArrayList<Polygon>();
-        Point3D[] poly1 = {new Point3D(400, -400, -1200), new Point3D(-400, -400, -1200), new Point3D(400, 400, -1200)};
-        Point3D[] poly2 = {new Point3D(-400, -400, -1200), new Point3D(-1200, -400, -1200), new Point3D(-800, 400, -1200)};
-        Point3D[] poly3 = {new Point3D(1200, -600, 0), new Point3D(1200, -600, 400), new Point3D(800, 400, 0)};
-        polygons.add(poly1);
-        polygons.add(poly2);
-        polygons.add(poly3);
-        drawPolygons.add(new Polygon());
+        car = new Car(0,0,0);
+        //SpacePolygon poly1 = new SpacePolygon(new Point3D(400, -400, -1200), new Point3D(-400, -400, -1200), new Point3D(400, 400, -1200));
+        //SpacePolygon poly2 = new SpacePolygon(new Point3D(-400, -400, -1200), new Point3D(-1200, -400, -1200), new Point3D(-800, 400, -1200));
+        //SpacePolygon poly3 = new SpacePolygon(new Point3D(1200, -600, 0), new Point3D(1200, -600, 400), new Point3D(800, 400, 0));
+        //polygons.add(poly1);
+        //polygons.add(poly2);
+        //polygons.add(poly3);
+        drawPolygons = car.getPolygons();
 
         bi = new BufferedImage((int)Frame.screenSize.getWidth(), (int)Frame.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics= bi.createGraphics();
@@ -287,24 +236,50 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
             }
         }
     }
+    
+    private void setOrder() {
+        double[] k = new double[polygons.size()];
+        drawPolygonOrder = new int[polygons.size()];
+
+        for(int i = 0; i < polygons.size(); i ++)
+        {
+            k[i] = polygons.get(i).getDistanceFrom(camera);
+            drawPolygonOrder[i] = i;
+        }
+
+        double temp;
+        int tempr;        
+        for (int a = 0; a < k.length-1; a++) {
+            for (int b = 0; b < k.length-1; b++) {
+                if(k[b] < k[b + 1])
+                {
+                    temp = k[b];
+                    tempr = drawPolygonOrder[b];
+                    drawPolygonOrder[b] = drawPolygonOrder[b + 1];
+                    k[b] = k[b + 1];
+
+                    drawPolygonOrder[b + 1] = tempr;
+                    k[b + 1] = temp;
+                }
+            }
+        }
+    }
 
     private void draw_poly(Graphics g) {
         g.clearRect(0, 0, (int)Frame.screenSize.getWidth(), (int)Frame.screenSize.getHeight());
         g.setColor(Color.white);
         g.fillRect(0, 0, (int)Frame.screenSize.getWidth(), (int)Frame.screenSize.getHeight());
-        int i = 0;
         drawPolygons.clear();
-        for(Point3D[] singlePoly : polygons) {
+        setOrder();
+        for(int i = 0; i < polygons.size(); i ++) {
+            SpacePolygon singlePoly = polygons.get(drawPolygonOrder[i]);
             PsuedoIntegerArray ppoint_x = new PsuedoIntegerArray();
             PsuedoIntegerArray ppoint_y = new PsuedoIntegerArray();
-            i = 0;
-            for(Point3D singlePoint : singlePoly) {
+            Point3D[] singlePolyArray = singlePoly.getArray();
+            for(Point3D singlePoint : singlePolyArray) {
                 double[] originalMatrix = singlePoint.getMatris();
                 double[] playerMatrix = camera.getMatris();
                 double[] adjustedMatrix = {originalMatrix[0] - playerMatrix[0], originalMatrix[1] - playerMatrix[1], originalMatrix[2] - playerMatrix[2]};
-                System.out.println("facingX = " + facing.getX());
-                System.out.println("facingY = " + facing.getY());
-                System.out.println("facingZ = " + facing.getZ());
                 rotated.setMatris(Matrix.multiply(rotationY(facing.getY()), adjustedMatrix));
                 rotated.setMatris(Matrix.multiply(rotationX(facing.getX()), rotated.getMatris()));
                 rotated.setMatris(Matrix.multiply(rotationZ(facing.getZ()), rotated.getMatris()));
@@ -315,10 +290,10 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
                     ppoint_y.add((int)projected_2D.y + (int)Frame.screenSize.getHeight() / 2);
                 }
             }
-            //Polygon DP = new Polygon(ppoint_x,ppoint_y,3);
             g.setColor(Color.BLACK);
-            System.out.println("size=" + ppoint_x.getArray().length);
             g.drawPolygon(ppoint_x.getArray(),ppoint_y.getArray(),ppoint_x.getArray().length);
+            g.setColor(Color.RED);
+            g.fillPolygon(ppoint_x.getArray(),ppoint_y.getArray(),ppoint_x.getArray().length);
         }
     }
 
@@ -326,8 +301,6 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         updateKeys();
-        bi.getGraphics().setColor(Color.BLACK);
-
         draw_poly(bi.getGraphics());
         
         g.drawImage(bi, 0, 0, null);
