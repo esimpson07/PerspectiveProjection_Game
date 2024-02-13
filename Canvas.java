@@ -45,12 +45,12 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     double angleZ = 0;
     double distance = 0;
     double fov = 180;
-    double movementSpeed = 10;
+    double movementSpeed = 100;
     boolean keys[] = new boolean[]{false,false,false,false,false,false,false};
     
     private double vertLook = 0, horLook = 0, horRotSpeed = .09, vertRotSpeed = .22;
-    Double ppoint_x[] = new Double[10];
-    Double ppoint_y[] = new Double[10];
+    Integer ppoint_x[] = new Integer[1000];
+    Integer ppoint_y[] = new Integer[1000];
     private Robot robot;
 
     Canvas() {
@@ -86,10 +86,10 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         if(e.getKeyCode() == KeyEvent.VK_D) {
             keys[3] = true;
         }
-        if(e.getKeyCode() == KeyEvent.VK_D) {
+        if(e.getKeyCode() == KeyEvent.VK_SPACE) {
             keys[4] = true;
         }
-        if(e.getKeyCode() == KeyEvent.VK_D) {
+        if(e.getKeyCode() == KeyEvent.VK_SHIFT) {
             keys[5] = true;
         }
         if(e.getKeyCode() == KeyEvent.VK_ESCAPE) {
@@ -110,10 +110,10 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         if(e.getKeyCode() == KeyEvent.VK_D) {
             keys[3] = false;
         }
-        if(e.getKeyCode() == KeyEvent.VK_D) {
+        if(e.getKeyCode() == KeyEvent.VK_SPACE) {
             keys[4] = false;
         }
-        if(e.getKeyCode() == KeyEvent.VK_D) {
+        if(e.getKeyCode() == KeyEvent.VK_SHIFT) {
             keys[5] = false;
         }
         if(e.getKeyCode() == KeyEvent.VK_ESCAPE) {
@@ -177,6 +177,15 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         if(keys[3]) {
             camera.setZ(camera.getZ() + (movementSpeed * Math.sin(angleY)));
             camera.setX(camera.getX() + (movementSpeed * Math.cos(angleY)));
+        }
+        if(keys[4]) {
+            camera.setY(camera.getY() - movementSpeed);
+        }
+        if(keys[5]) {
+            camera.setY(camera.getY() + movementSpeed);
+        }
+        if(keys[6]) {
+            System.exit(0);
         }
     }
     /*
@@ -271,7 +280,7 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         return k;
     }
 
-    private void connect_points(int k, int l, Double x[], Double y[], Graphics g) {
+    private void connect_points(int k, int l, Integer x[], Integer y[], Graphics g) {
         g.setColor(Color.black);
         for(int i = 0; i < polygons.size(); i ++) {
             if(x[k + (i * 3)] != null && y[k + (i * 3)] != null && x[l + (i * 3)] != null && y[l + (i * 3)] != null) {
@@ -300,8 +309,8 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
                 double z = (fov / (fov * distance - rotated.z / 4));
                 projected_2D.setMatris(Matrix.multiply(projection(z), rotated.getMatris()));
                 if(z >= 0) {
-                    ppoint_x[i] = projected_2D.x;
-                    ppoint_y[i] = projected_2D.y;
+                    ppoint_x[i] = (int)projected_2D.x;
+                    ppoint_y[i] = (int)projected_2D.y;
                 } else {
                     ppoint_x[i] = null;
                     ppoint_y[i] = null;
@@ -309,6 +318,7 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
                 i++;
             }
         }
+        
     }
 
     @Override
@@ -321,6 +331,7 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         connect_points(0, 1, ppoint_x, ppoint_y, bi.getGraphics());
         connect_points(1, 2, ppoint_x, ppoint_y, bi.getGraphics());
         connect_points(2, 0, ppoint_x, ppoint_y, bi.getGraphics());
+        
         g.drawImage(bi, 0, 0, null);
     }
 }
