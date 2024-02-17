@@ -1,4 +1,3 @@
-
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -27,15 +26,15 @@ import javax.swing.JPanel;
 
 public class Canvas extends JPanel implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener{
 
-    //Point3D[] cube = new Point3D[8];
+    //Vector[] cube = new Vector[8];
     ArrayList<SpacePolygon> polygons;
     Point mouse_point = new Point(0, 0);
-    Point3D origin = new Point3D(Frame.screenSize.getWidth() / 2, Frame.screenSize.getHeight() / 2, 0);
-    Point3D projected_2D = new Point3D(0, 0, 0);
+    Vector origin = new Vector(Frame.screenSize.getWidth() / 2, Frame.screenSize.getHeight() / 2, 0);
+    Vector projected_2D = new Vector(0, 0, 0);
     ArrayList<Polygon> drawPolygons;
-    Point3D camera = new Point3D(0, 0, 0);
-    Point3D rotated = new Point3D(0, 0, 0);
-    Point3D facing = new Point3D(0, 0, 0);
+    Vector camera = new Vector(0, 0, 0);
+    Vector rotated = new Vector(0, 0, 0);
+    Vector facing = new Vector(0, 0, 0);
 
     BufferedImage bi;
     
@@ -43,13 +42,16 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     double angleY = 0;
     double angleZ = 0;
     double distance = 0;
-    double fov = 180;
+    double fov = 110;
     double movementSpeed = 50;
     int drawPolygonOrder[];
     boolean keys[] = new boolean[]{false,false,false,false,false,false,false};
-    
+    long lastCheck = 0;
+    int checks = 0;
     private double vertLook = 0, horLook = 0, horRotSpeed = .09, vertRotSpeed = .22;
+    private double fps;
     private Robot robot;
+    private Car car;
 
     Canvas() {
 
@@ -188,14 +190,16 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     private void init() {
         polygons = new ArrayList<SpacePolygon>();
         drawPolygons = new ArrayList<Polygon>();
-        car = new Car(0,0,0);
-        //SpacePolygon poly1 = new SpacePolygon(new Point3D(400, -400, -1200), new Point3D(-400, -400, -1200), new Point3D(400, 400, -1200));
-        //SpacePolygon poly2 = new SpacePolygon(new Point3D(-400, -400, -1200), new Point3D(-1200, -400, -1200), new Point3D(-800, 400, -1200));
-        //SpacePolygon poly3 = new SpacePolygon(new Point3D(1200, -600, 0), new Point3D(1200, -600, 400), new Point3D(800, 400, 0));
-        //polygons.add(poly1);
-        //polygons.add(poly2);
-        //polygons.add(poly3);
-        drawPolygons = car.getPolygons();
+        int n = 20;
+        int tileSize = 1000;
+        for(int x = -n; x <= n; x ++) {
+            for(int y = -n; y <= n; y ++) {
+                polygons.add(new SpacePolygon(new Vector(tileSize + (x * tileSize), 0, tileSize + (y * tileSize)), 
+                    new Vector((x * tileSize), 0, tileSize + (y * tileSize)), new Vector((x * tileSize), 0, (y * tileSize))));
+                polygons.add(new SpacePolygon(new Vector(tileSize + (x * tileSize), 0, tileSize + (y * tileSize)), 
+                    new Vector(tileSize + (x * tileSize), 0, (y * tileSize)), new Vector((x * tileSize), 0, (y * tileSize))));
+            }
+        }
 
         bi = new BufferedImage((int)Frame.screenSize.getWidth(), (int)Frame.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics= bi.createGraphics();
@@ -275,8 +279,8 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
             SpacePolygon singlePoly = polygons.get(drawPolygonOrder[i]);
             PsuedoIntegerArray ppoint_x = new PsuedoIntegerArray();
             PsuedoIntegerArray ppoint_y = new PsuedoIntegerArray();
-            Point3D[] singlePolyArray = singlePoly.getArray();
-            for(Point3D singlePoint : singlePolyArray) {
+            Vector[] singlePolyArray = singlePoly.getArray();
+            for(Vector singlePoint : singlePolyArray) {
                 double[] originalMatrix = singlePoint.getMatris();
                 double[] playerMatrix = camera.getMatris();
                 double[] adjustedMatrix = {originalMatrix[0] - playerMatrix[0], originalMatrix[1] - playerMatrix[1], originalMatrix[2] - playerMatrix[2]};
@@ -295,13 +299,22 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
             g.setColor(Color.RED);
             g.fillPolygon(ppoint_x.getArray(),ppoint_y.getArray(),ppoint_x.getArray().length);
         }
+        checks ++;            
+        if(checks >= 15) {
+            g.setColor(Color.black);
+            fps = checks / ((System.currentTimeMillis() - lastCheck) / 1000.0);
+            lastCheck = System.currentTimeMillis();
+            checks = 0;
+        }
+        g.drawString(new String("FPS:" + (int)fps), 50, 50);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         updateKeys();
-        draw_poly(bi.getGraphics());
+        draw_poly(bi.getGraphics()); //RESETS THE SCREEN BEFORE DRAWING POLYGONS!!!
+        
         
         g.drawImage(bi, 0, 0, null);
     }
