@@ -27,24 +27,15 @@ import javax.swing.JPanel;
 public class Canvas extends JPanel implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener{
 
     //Vector[] cube = new Vector[8];
-    ArrayList<SpacePolygon> polygons;
     Point mouse_point = new Point(0, 0);
-    Vector origin = new Vector(Frame.screenSize.getWidth() / 2, Frame.screenSize.getHeight() / 2, 0);
-    Vector projected_2D = new Vector(0, 0, 0);
-    ArrayList<Polygon> drawPolygons;
-    Vector camera = new Vector(0, 0, 0);
-    Vector rotated = new Vector(0, 0, 0);
-    Vector facing = new Vector(0, 0, 0);
 
     BufferedImage bi;
     
     double angleX = 0;
     double angleY = 0;
     double angleZ = 0;
-    double distance = 0;
-    double fov = 110;
+    
     double movementSpeed = 50;
-    int drawPolygonOrder[];
     boolean keys[] = new boolean[]{false,false,false,false,false,false,false};
     long lastCheck = 0;
     int checks = 0;
@@ -154,33 +145,33 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
         double  difX = (newMouseY - Frame.screenSize.getHeight() / 2);
         angleY += difY  / 1800;
         angleX -= difX / 1800;
-        facing.setX(angleX);
-        facing.setY(angleY);
-        facing.setZ(0);
+        Calculator.setFacingX(angleX);
+        Calculator.setFacingY(angleY);
+        Calculator.setFacingZ(0);
     }
     
     private void updateKeys() {
         if(keys[0]) {
-            camera.setZ(camera.getZ() - (movementSpeed * Math.cos(angleY)));
-            camera.setX(camera.getX() + (movementSpeed * Math.sin(angleY)));
+            Calculator.setCameraZ(Calculator.getCameraZ() - (movementSpeed * Math.cos(angleY)));
+            Calculator.setCameraX(Calculator.getCameraX() + (movementSpeed * Math.sin(angleY)));
         }
         if(keys[1]) {
-            camera.setZ(camera.getZ() - (movementSpeed * Math.sin(angleY)));
-            camera.setX(camera.getX() - (movementSpeed * Math.cos(angleY)));
+            Calculator.setCameraZ(Calculator.getCameraZ() - (movementSpeed * Math.sin(angleY)));
+            Calculator.setCameraX(Calculator.getCameraX() - (movementSpeed * Math.cos(angleY)));
         }
         if(keys[2]) {
-            camera.setZ(camera.getZ() + (movementSpeed * Math.cos(angleY)));
-            camera.setX(camera.getX() - (movementSpeed * Math.sin(angleY)));
+            Calculator.setCameraZ(Calculator.getCameraZ() + (movementSpeed * Math.cos(angleY)));
+            Calculator.setCameraX(Calculator.getCameraX() - (movementSpeed * Math.sin(angleY)));
         }
         if(keys[3]) {
-            camera.setZ(camera.getZ() + (movementSpeed * Math.sin(angleY)));
-            camera.setX(camera.getX() + (movementSpeed * Math.cos(angleY)));
+            Calculator.setCameraZ(Calculator.getCameraZ() + (movementSpeed * Math.sin(angleY)));
+            Calculator.setCameraX(Calculator.getCameraX() + (movementSpeed * Math.cos(angleY)));
         }
         if(keys[4]) {
-            camera.setY(camera.getY() - movementSpeed);
+            Calculator.setCameraY(Calculator.getCameraY() - movementSpeed);
         }
         if(keys[5]) {
-            camera.setY(camera.getY() + movementSpeed);
+            Calculator.setCameraY(Calculator.getCameraY() + movementSpeed);
         }
         if(keys[6]) {
             System.exit(0);
@@ -188,10 +179,9 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     }
 
     private void init() {
-        polygons = new ArrayList<SpacePolygon>();
-        drawPolygons = new ArrayList<Polygon>();
-        int n = 20;
+        int n = 40;
         int tileSize = 1000;
+        ArrayList<SpacePolygon> polygons = new ArrayList<SpacePolygon>();
         for(int x = -n; x <= n; x ++) {
             for(int y = -n; y <= n; y ++) {
                 polygons.add(new SpacePolygon(new Vector(tileSize + (x * tileSize), 0, tileSize + (y * tileSize)), 
@@ -200,105 +190,20 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
                     new Vector(tileSize + (x * tileSize), 0, (y * tileSize)), new Vector((x * tileSize), 0, (y * tileSize))));
             }
         }
+        Calculator.setPolygonArray(polygons);
 
         bi = new BufferedImage((int)Frame.screenSize.getWidth(), (int)Frame.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics= bi.createGraphics();
         graphics.setPaint(Color.white);
     }
 
-    private double[][] projection(double z) {
-        double[][] k = { { z, 0, 0 }, { 0, z, 0 }, { 0, 0, 0 } };
-        return k;
-    }
-
-    private double[][] rotationX(double angle) {
-        double[][] k = { { 1, 0, 0 }, 
-                { 0, Math.cos(angle), -Math.sin(angle) },
-                { 0, Math.sin(angle), Math.cos(angle) } };
-        return k;
-    }
-
-    private double[][] rotationY(double angle) {
-        double[][] k = { { Math.cos(angle), 0, Math.sin(angle) }, { 0, 1, 0 },
-                { -Math.sin(angle), 0, Math.cos(angle) } };
-        return k;
-    }
-
-    private double[][] rotationZ (double angle) {
-        double[][] k = { { Math.cos(angle), -Math.sin(angle), 0 }, 
-                { Math.sin(angle), Math.cos(angle), 0 },
-                { 0, 0, 1 } };
-        return k;
-    }
-
-    private void connect_points(int k, int l, Integer x[], Integer y[], Graphics g) {
-        g.setColor(Color.black);
-        for(int i = 0; i < polygons.size(); i ++) {
-            if(x[k + (i * 3)] != null && y[k + (i * 3)] != null && x[l + (i * 3)] != null && y[l + (i * 3)] != null) {
-                g.drawLine((int) (origin.x + x[k + (i * 3)].intValue()), (int) origin.y + y[k + (i * 3)].intValue(),
-                    (int) origin.x + x[l + (i * 3)].intValue(), (int) origin.y + y[l + (i * 3)].intValue());
-            }
-        }
-    }
-    
-    private void setOrder() {
-        double[] k = new double[polygons.size()];
-        drawPolygonOrder = new int[polygons.size()];
-
-        for(int i = 0; i < polygons.size(); i ++)
-        {
-            k[i] = polygons.get(i).getDistanceFrom(camera);
-            drawPolygonOrder[i] = i;
-        }
-
-        double temp;
-        int tempr;        
-        for (int a = 0; a < k.length-1; a++) {
-            for (int b = 0; b < k.length-1; b++) {
-                if(k[b] < k[b + 1])
-                {
-                    temp = k[b];
-                    tempr = drawPolygonOrder[b];
-                    drawPolygonOrder[b] = drawPolygonOrder[b + 1];
-                    k[b] = k[b + 1];
-
-                    drawPolygonOrder[b + 1] = tempr;
-                    k[b + 1] = temp;
-                }
-            }
-        }
-    }
-
-    private void draw_poly(Graphics g) {
+    private void drawScreen(Graphics g) {
         g.clearRect(0, 0, (int)Frame.screenSize.getWidth(), (int)Frame.screenSize.getHeight());
         g.setColor(Color.white);
         g.fillRect(0, 0, (int)Frame.screenSize.getWidth(), (int)Frame.screenSize.getHeight());
-        drawPolygons.clear();
-        setOrder();
-        for(int i = 0; i < polygons.size(); i ++) {
-            SpacePolygon singlePoly = polygons.get(drawPolygonOrder[i]);
-            PsuedoIntegerArray ppoint_x = new PsuedoIntegerArray();
-            PsuedoIntegerArray ppoint_y = new PsuedoIntegerArray();
-            Vector[] singlePolyArray = singlePoly.getArray();
-            for(Vector singlePoint : singlePolyArray) {
-                double[] originalMatrix = singlePoint.getMatris();
-                double[] playerMatrix = camera.getMatris();
-                double[] adjustedMatrix = {originalMatrix[0] - playerMatrix[0], originalMatrix[1] - playerMatrix[1], originalMatrix[2] - playerMatrix[2]};
-                rotated.setMatris(Matrix.multiply(rotationY(facing.getY()), adjustedMatrix));
-                rotated.setMatris(Matrix.multiply(rotationX(facing.getX()), rotated.getMatris()));
-                rotated.setMatris(Matrix.multiply(rotationZ(facing.getZ()), rotated.getMatris()));
-                double z = (fov / (fov * distance - rotated.z / 4));
-                projected_2D.setMatris(Matrix.multiply(projection(z), rotated.getMatris()));
-                if(z >= 0) {
-                    ppoint_x.add((int)projected_2D.x + (int)Frame.screenSize.getWidth() / 2);
-                    ppoint_y.add((int)projected_2D.y + (int)Frame.screenSize.getHeight() / 2);
-                }
-            }
-            g.setColor(Color.BLACK);
-            g.drawPolygon(ppoint_x.getArray(),ppoint_y.getArray(),ppoint_x.getArray().length);
-            g.setColor(Color.RED);
-            g.fillPolygon(ppoint_x.getArray(),ppoint_y.getArray(),ppoint_x.getArray().length);
-        }
+        //setOrder();
+        Calculator.drawPoly1(g);
+        Calculator.drawPoly2(g);
         checks ++;            
         if(checks >= 15) {
             g.setColor(Color.black);
@@ -313,9 +218,7 @@ public class Canvas extends JPanel implements KeyListener, MouseListener, MouseM
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         updateKeys();
-        draw_poly(bi.getGraphics()); //RESETS THE SCREEN BEFORE DRAWING POLYGONS!!!
-        
-        
+        drawScreen(bi.getGraphics()); //RESETS THE SCREEN BEFORE DRAWING POLYGONS!!!
         g.drawImage(bi, 0, 0, null);
     }
 }
